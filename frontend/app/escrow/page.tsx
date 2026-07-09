@@ -94,7 +94,7 @@ function EscrowDetail() {
         </div>
       </div>
 
-      <div className="mx-auto mt-4 flex max-w-md justify-between annotation">
+      <div className="mx-auto mt-4 flex max-w-md flex-col items-center gap-1 annotation sm:flex-row sm:justify-between">
         <span>client {shortAddr(escrow.client)}</span>
         <span>freelancer {shortAddr(escrow.freelancer)}</span>
       </div>
