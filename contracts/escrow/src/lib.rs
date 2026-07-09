@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, token, Address, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, token, Address, Env, String, Vec};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -127,6 +127,11 @@ impl EscrowContract {
             created_at: env.ledger().timestamp(),
         };
         write_escrow(&env, id, &escrow);
+
+        env.events().publish(
+            (symbol_short!("escrow"), symbol_short!("created")),
+            (id, escrow.client.clone(), escrow.freelancer.clone(), total),
+        );
         id
     }
 
@@ -154,9 +159,15 @@ impl EscrowContract {
             &milestone.amount,
         );
 
+        let amount = milestone.amount;
         milestone.status = MilestoneStatus::Released;
         escrow.milestones.set(index, milestone);
         write_escrow(&env, id, &escrow);
+
+        env.events().publish(
+            (symbol_short!("escrow"), symbol_short!("released")),
+            (id, index, amount),
+        );
     }
 
     /// Client cancels the escrow: every still-Locked milestone is refunded
@@ -197,6 +208,11 @@ impl EscrowContract {
         escrow.milestones = updated;
         escrow.cancelled = true;
         write_escrow(&env, id, &escrow);
+
+        env.events().publish(
+            (symbol_short!("escrow"), symbol_short!("cancelled")),
+            (id, refunded_total),
+        );
     }
 
     pub fn get_escrow(env: Env, id: u64) -> EscrowData {
