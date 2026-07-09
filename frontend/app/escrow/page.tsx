@@ -14,7 +14,7 @@ import {
 import { shortAddr, stroopsToXlm } from "@/lib/config";
 import KeystoneArch from "@/components/KeystoneArch";
 import ActivityFeed from "@/components/ActivityFeed";
-import TxBanner, { TxState, isUserRejection } from "@/components/TxBanner";
+import TxBanner, { TxState, isUserRejection, friendlyError } from "@/components/TxBanner";
 import WalletNotFound from "@/components/errors/WalletNotFound";
 
 function statusChip(status: string) {
@@ -69,7 +69,7 @@ function EscrowDetail() {
       else
         setTx({
           phase: "failed",
-          message: e instanceof Error ? e.message : String(e),
+          message: friendlyError(e),
         });
     }
   };

@@ -9,7 +9,7 @@ import {
   getEscrowCount,
 } from "@/lib/soroban";
 import { TOKEN_CONTRACT, xlmToStroops } from "@/lib/config";
-import TxBanner, { TxState, isUserRejection } from "@/components/TxBanner";
+import TxBanner, { TxState, isUserRejection, friendlyError } from "@/components/TxBanner";
 import WalletNotFound from "@/components/errors/WalletNotFound";
 
 type Row = { title: string; amount: string };
@@ -99,7 +99,7 @@ export default function CreateEscrow() {
       } else {
         setTx({
           phase: "failed",
-          message: e instanceof Error ? e.message : String(e),
+          message: friendlyError(e),
         });
       }
     }
