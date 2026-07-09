@@ -15,7 +15,7 @@
 
 Keystone is a milestone-based escrow dApp on Stellar testnet. A client locks the full budget of a project into a Soroban smart contract, split across 2–3 named milestones for a designated freelancer. As the client approves each milestone, the escrow contract executes a real inter-contract transfer (Escrow → Stellar Asset Contract) paying that milestone to the freelancer. If the client cancels, every still-locked milestone is refunded on-chain — already-released payments are untouched.
 
-![Hero screenshot](PENDING — generate after deployment)
+![Keystone landing page — architectural blueprint identity](screenshots/desktop-landing.png)
 
 ## Table of Contents
 
@@ -81,11 +81,17 @@ Keystone is a milestone-based escrow dApp on Stellar testnet. A client locks the
 | CI/CD | GitHub Actions (contracts + frontend jobs) |
 | Network | Stellar Testnet, funded via Friendbot |
 
+## Live Demo
 
+**<https://keystone.swore-fetch-sank.workers.dev/>** — deployed on Cloudflare Workers, wired to the real testnet contract. Connect Freighter (testnet), create an escrow, release stones, watch the arch fill live.
 
 ## Demo Video (1–2 minutes)
 
-`PENDING — generate after deployment`
+**[▶ Watch the full demo (MP4)](screenshots/demo.mp4)** — connect wallet → create a 2-milestone escrow (300 XLM locked) → release both milestones → live arch + activity feed updating from on-chain events.
+
+Preview:
+
+![Demo preview — first seconds of the recording](screenshots/demo-preview.gif)
 
 ## Contract Deployment Address
 
@@ -212,6 +218,10 @@ GitHub Actions (`.github/workflows/ci.yml`) runs five jobs on every push and pul
 
 [![CI/CD](https://github.com/benr246/Keystone/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/benr246/Keystone/actions/workflows/ci.yml)
 
+All checks green on a real push (plus the Cloudflare Workers build):
+
+![All 6 checks passing — 5 CI jobs + Cloudflare Workers build](screenshots/ci-all-checks-green.png)
+
 ![CI run screenshot](PENDING — generate after deployment)
 
 ## Tests
@@ -237,7 +247,7 @@ test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
 
 Run them yourself: `cd contracts && cargo test`
 
-![Test output screenshot](PENDING — generate after deployment)
+![cargo test output — 11 passed, 0 failed (from the green CI run)](screenshots/cargo-test-output.png)
 
 ## Error Handling & Loading States
 
@@ -253,7 +263,9 @@ Every blockchain action tracks pending → success/fail. Success always surfaces
 
 Verified at 375px (iPhone SE) and 768px: milestone rows stack, the hero arch scales, the feed compacts, and all tap targets are ≥44px.
 
-![375px screenshot](PENDING — generate after deployment)
+| Landing (375px) | Escrow hero (375px) |
+|---|---|
+| ![Mobile landing page at 375px](screenshots/mobile-landing-375px.png) | ![Mobile escrow detail with keystone arch at 375px](screenshots/escrow-hero-arch.png) |
 
 ## Production-Ready Architecture
 
@@ -325,16 +337,35 @@ keystone/
 
 ## Screenshots
 
-| Item | Screenshot |
-|---|---|
-| Wallet options modal (StellarWalletsKit) | `PENDING — generate after deployment` |
-| Connected state + XLM balance | `PENDING — generate after deployment` |
-| Create escrow flow | `PENDING — generate after deployment` |
-| Hero progress after a release | `PENDING — generate after deployment` |
-| Live activity feed | `PENDING — generate after deployment` |
-| Mobile UI (375px) | `PENDING — generate after deployment` |
-| CI/CD run (Actions tab) | `PENDING — generate after deployment` |
-| Test output | `PENDING — generate after deployment` |
+**Desktop landing — blueprint visual identity**
+
+![Desktop landing page](screenshots/desktop-landing.png)
+
+**Connected state + XLM balance** — wallet address and live balance in the header, escrow list for the connected account:
+
+![Wallet connected with XLM balance and escrow list](screenshots/wallet-connected-balance.png)
+
+**Hero progress after a release** — the keystone arch fully filled: 300/300 XLM released across 2 stones, live client/freelancer annotations:
+
+![Escrow detail hero arch after releases](screenshots/escrow-hero-arch.png)
+
+**Live activity feed** — released milestone cards plus the "Site log" polling real contract events, each row linking its tx hash:
+
+![Milestone cards and live activity feed](screenshots/milestones-activity-feed.png)
+
+**Mobile UI (375px)**
+
+![Mobile landing at 375px](screenshots/mobile-landing-375px.png)
+
+**CI/CD run** — all 6 checks green (5 GitHub Actions jobs + Cloudflare Workers build):
+
+![CI checks all passing](screenshots/ci-all-checks-green.png)
+
+**Test output** — `cargo test` in CI, 11 passed / 0 failed:
+
+![cargo test output from CI](screenshots/cargo-test-output.png)
+
+Still to capture: wallet options modal (StellarWalletsKit picker) and the create-escrow form — `PENDING`.
 
 ## License
 
