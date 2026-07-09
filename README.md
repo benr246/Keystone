@@ -1,8 +1,87 @@
-# Keystone — Milestone Escrow on Stellar Soroban
+<div align="center">
+
+# 🗝️ Keystone — Milestone Escrow on Stellar Soroban
+
+[![CI/CD](https://github.com/OWNER/keystone/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/OWNER/keystone/actions/workflows/ci.yml)
+[![Stellar Testnet](https://img.shields.io/badge/Stellar-Testnet-7B61FF?logo=stellar&logoColor=white)](https://stellar.org)
+[![Soroban](https://img.shields.io/badge/Soroban-SDK%20v25-orange?logo=rust&logoColor=white)](https://developers.stellar.org/docs/build/smart-contracts)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-22C55E.svg)](LICENSE)
+
+**Milestone-based escrow for client/freelancer payments on Stellar Testnet — funds locked in Soroban smart-contract custody and released one stone at a time, with verifiable on-chain inter-contract transfers.**
+
+</div>
+
+> ⚠️ After pushing to GitHub, replace `OWNER/keystone` in the CI badge above with the real repository path.
 
 Keystone is a milestone-based escrow dApp on Stellar testnet. A client locks the full budget of a project into a Soroban smart contract, split across 2–3 named milestones for a designated freelancer. As the client approves each milestone, the escrow contract executes a real inter-contract transfer (Escrow → Stellar Asset Contract) paying that milestone to the freelancer. If the client cancels, every still-locked milestone is refunded on-chain — already-released payments are untouched.
 
 ![Hero screenshot](PENDING — generate after deployment)
+
+## Table of Contents
+
+- [Live Demo](#live-demo)
+- [Demo Video (1–2 minutes)](#demo-video-12-minutes)
+- [Architecture](#architecture)
+- [Tech Stack](#tech-stack)
+- [Contract Deployment Address](#contract-deployment-address)
+- [Transaction Hash for Contract Interaction](#transaction-hash-for-contract-interaction)
+- [Inter-Contract Communication](#inter-contract-communication)
+- [Event Streaming & Real-Time Updates](#event-streaming--real-time-updates)
+- [Escrow Mechanics](#escrow-mechanics)
+- [Smart Contract Deployment Workflow](#smart-contract-deployment-workflow)
+- [CI/CD Pipeline](#cicd-pipeline)
+- [Tests](#tests)
+- [Error Handling & Loading States](#error-handling--loading-states)
+- [Mobile Responsive Frontend](#mobile-responsive-frontend)
+- [Production-Ready Architecture](#production-ready-architecture)
+- [Setup Instructions](#setup-instructions)
+- [Project Structure](#project-structure)
+- [Commit History Summary](#commit-history-summary)
+- [Screenshots](#screenshots)
+- [License](#license)
+
+## Architecture
+
+```
+┌───────────────────────────────────────────────────────────────┐
+│                     Next.js 14 Frontend                       │
+│        (static export · Tailwind · SWR 5s polling)            │
+│                                                               │
+│   ┌─────────────┐  ┌──────────────┐  ┌───────────────────┐   │
+│   │  Dashboard  │  │ Create flow  │  │ Escrow detail     │   │
+│   │  (escrows)  │  │ (lock funds) │  │ (arch hero + feed)│   │
+│   └──────┬──────┘  └──────┬───────┘  └─────────┬─────────┘   │
+└──────────┼────────────────┼────────────────────┼─────────────┘
+           │   StellarWalletsKit (Freighter et al.)
+           ▼                ▼                    ▼
+┌───────────────────────────────────────────────────────────────┐
+│              Soroban RPC · Stellar Testnet                    │
+│                                                               │
+│   ┌──────────────────────┐  inter-contract  ┌─────────────┐  │
+│   │   Escrow contract    │      calls       │ Native XLM  │  │
+│   │  CA62…2SQO           │ ───────────────► │ SAC (token) │  │
+│   │  create / release /  │  token.transfer  │ CDLZ…CYSC   │  │
+│   │  cancel + events     │                  │             │  │
+│   └──────────────────────┘                  └─────────────┘  │
+└───────────────────────────────────────────────────────────────┘
+```
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Smart contracts | Rust + Soroban SDK v25 |
+| Frontend | Next.js 14 (App Router), TypeScript 5, static export |
+| Styling | Tailwind CSS (architectural-blueprint visual identity) |
+| Animation | Framer Motion (arch segment transitions) |
+| Wallet | `@creit.tech/stellar-wallets-kit` v2.5 (Freighter primary) |
+| Data fetching | SWR (5s polling of contract state + events) |
+| Chain access | `@stellar/stellar-sdk` v16 (Soroban RPC + Horizon) |
+| Deployment | Cloudflare Workers static assets (`wrangler.toml`) |
+| CI/CD | GitHub Actions (contracts + frontend jobs) |
+| Network | Stellar Testnet, funded via Friendbot |
 
 ## Live Demo
 
@@ -37,6 +116,31 @@ Every fund movement in Keystone is a real Soroban cross-contract invocation from
 - `release_milestone` → `token.transfer(escrow_contract, freelancer, amount)` — pays the freelancer.
 - `cancel_escrow` → `token.transfer(escrow_contract, client, refunded_total)` — refunds locked funds.
 
+The actual mechanism, from [`contracts/escrow/src/lib.rs`](contracts/escrow/src/lib.rs):
+
+```rust
+// create_escrow — Escrow → SAC: pull the full budget into custody
+token::Client::new(&env, &token).transfer(
+    &client,
+    &env.current_contract_address(),
+    &total,
+);
+
+// release_milestone — Escrow → SAC: pay the freelancer
+token::Client::new(&env, &escrow.token).transfer(
+    &env.current_contract_address(),
+    &escrow.freelancer,
+    &milestone.amount,
+);
+
+// cancel_escrow — Escrow → SAC: refund every still-locked milestone
+token::Client::new(&env, &escrow.token).transfer(
+    &env.current_contract_address(),
+    &escrow.client,
+    &refunded_total,
+);
+```
+
 On-chain proof: the [release transaction](https://stellar.expert/explorer/testnet/tx/02ebf6eea4de81bbe3fa4442369ff7b5e88b0c05974f883347de34792f6e578f) shows a `transfer` event emitted **by the SAC contract** (`CDLZ…CYSC`) with the escrow contract (`CA62…2SQO`) as sender and the freelancer as recipient — that event can only exist because the escrow contract invoked the token contract cross-contract. There is no internal balance bookkeeping substitute.
 
 ## Event Streaming & Real-Time Updates
@@ -51,6 +155,21 @@ The frontend polls Soroban RPC every 5 seconds:
 
 - `get_progress` feeds the live hero — the keystone arch and the `X XLM released / Y XLM locked` numerals update without a reload.
 - RPC `getEvents` (cursor-paginated across the retention window) feeds the live activity feed ("Site log"), newest first, each row linking its real transaction hash to Stellar Expert.
+
+## Escrow Mechanics
+
+- Amounts are stored in **stroops** (1 XLM = 10⁷ stroops) as `i128`.
+- An escrow holds 2–3 milestones; each is `Locked`, `Released`, or `Refunded`.
+- Progress shown in the hero is computed on-chain by `get_progress`:
+
+```
+released_total = Σ amount  where status == Released
+locked_total   = Σ amount  where status == Locked
+```
+
+- Validation enforced by the contract (panics with clear messages): 2–3 milestones, every amount > 0, client ≠ freelancer, no double release, no release after cancel, cancel requires at least one locked milestone.
+- Every mutating call requires the client's signature via `require_auth()`.
+- The frontend polls XLM balance from Horizon and pre-flight-checks `total + 2 XLM fee headroom` before ever asking the wallet to sign.
 
 ## Smart Contract Deployment Workflow
 
@@ -163,6 +282,48 @@ npm run dev                # http://localhost:3000
 
 Deploy to Cloudflare Workers: create a Worker from the repo, leave the dashboard build command blank (root `wrangler.toml` drives the build), add the four `NEXT_PUBLIC_*` variables (unencrypted) before the first deploy.
 
+## Project Structure
+
+```
+keystone/
+├── wrangler.toml              # Cloudflare Workers build config
+├── contracts/                 # Soroban workspace
+│   └── escrow/
+│       └── src/
+│           ├── lib.rs         # escrow contract (custody, release, refund, events)
+│           └── test.rs        # 11 tests with real SAC balance assertions
+├── frontend/                  # Next.js 14 static export
+│   ├── app/
+│   │   ├── page.tsx           # dashboard (wallet, balance, escrow list)
+│   │   ├── create/page.tsx    # create escrow flow
+│   │   └── escrow/page.tsx    # detail: keystone arch hero + live feed
+│   ├── components/            # Header, KeystoneArch, ActivityFeed, TxBanner, errors
+│   └── lib/                   # config, soroban helpers, wallet context
+└── .github/workflows/ci.yml   # contracts + frontend CI jobs
+```
+
+## Commit History Summary
+
+17 incremental commits, scaffold → contracts → tests → testnet deployment → frontend → CI → docs:
+
+1. `chore: project scaffold (Next.js + Soroban workspace)`
+2. `feat: escrow contract data model and storage`
+3. `feat: create_escrow with token custody via inter-contract transfer`
+4. `feat: release_milestone with Escrow→Token payout`
+5. `feat: cancel_escrow with refund of locked milestones`
+6. `feat: contract events for created/released/cancelled`
+7. `test: escrow unit tests (11 passing, real inter-contract balance assertions)`
+8. `feat: wallet connect/disconnect via StellarWalletsKit`
+9. `feat: create escrow UI with transaction status tracking`
+10. `feat: escrow detail with keystone progress hero and live polling`
+11. `feat: live activity feed from contract events`
+12. `feat: error handling (wallet missing, rejected signature, insufficient balance)`
+13. `fix: paginate RPC getEvents with cursor so full retention window is scanned`
+14. `feat: mobile responsive layout (44px tap targets, stacked rows at 375px)`
+15. `ci: GitHub Actions pipeline for contracts + frontend`
+16. `chore: testnet deployment + real contract addresses wired in`
+17. `docs: README with full evidence (addresses, tx hashes, deployment workflow)`
+
 ## Screenshots
 
 | Item | Screenshot |
@@ -175,3 +336,7 @@ Deploy to Cloudflare Workers: create a Worker from the repo, leave the dashboard
 | Mobile UI (375px) | `PENDING — generate after deployment` |
 | CI/CD run (Actions tab) | `PENDING — generate after deployment` |
 | Test output | `PENDING — generate after deployment` |
+
+## License
+
+MIT — see [LICENSE](LICENSE).
