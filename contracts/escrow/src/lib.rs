@@ -130,6 +130,35 @@ impl EscrowContract {
         id
     }
 
+    /// Client releases milestone `index`: inter-contract call
+    /// token.transfer(contract_address, freelancer, amount).
+    pub fn release_milestone(env: Env, id: u64, index: u32) {
+        let mut escrow = read_escrow(&env, id);
+        escrow.client.require_auth();
+
+        if escrow.cancelled {
+            panic!("escrow is cancelled");
+        }
+        if index >= escrow.milestones.len() {
+            panic!("milestone index out of range");
+        }
+        let mut milestone = escrow.milestones.get(index).unwrap();
+        if milestone.status != MilestoneStatus::Locked {
+            panic!("milestone is not locked");
+        }
+
+        // Inter-contract call: pay the freelancer from escrow custody.
+        token::Client::new(&env, &escrow.token).transfer(
+            &env.current_contract_address(),
+            &escrow.freelancer,
+            &milestone.amount,
+        );
+
+        milestone.status = MilestoneStatus::Released;
+        escrow.milestones.set(index, milestone);
+        write_escrow(&env, id, &escrow);
+    }
+
     pub fn get_escrow(env: Env, id: u64) -> EscrowData {
         read_escrow(&env, id)
     }
