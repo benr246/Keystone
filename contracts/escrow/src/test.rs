@@ -74,7 +74,10 @@ fn test_create_escrow_locks_total() {
     assert_eq!(data.freelancer, s.freelancer);
     assert_eq!(data.milestones.len(), 3);
     assert_eq!(data.milestones.get(0).unwrap().amount, 1000);
-    assert_eq!(data.milestones.get(0).unwrap().status, MilestoneStatus::Locked);
+    assert_eq!(
+        data.milestones.get(0).unwrap().status,
+        MilestoneStatus::Locked
+    );
     assert!(!data.cancelled);
     assert_eq!(s.escrow.get_escrow_count(), 1);
     assert_eq!(s.escrow.get_progress(&id), (0, 5000));
@@ -99,7 +102,10 @@ fn test_release_pays_correct_amount() {
     assert_eq!(s.token.balance(&s.contract_addr), 4000);
 
     let data = s.escrow.get_escrow(&id);
-    assert_eq!(data.milestones.get(0).unwrap().status, MilestoneStatus::Released);
+    assert_eq!(
+        data.milestones.get(0).unwrap().status,
+        MilestoneStatus::Released
+    );
     assert_eq!(s.escrow.get_progress(&id), (1000, 4000));
 }
 
@@ -160,9 +166,18 @@ fn test_cancel_refunds_only_locked() {
 
     let data = s.escrow.get_escrow(&id);
     assert!(data.cancelled);
-    assert_eq!(data.milestones.get(0).unwrap().status, MilestoneStatus::Released);
-    assert_eq!(data.milestones.get(1).unwrap().status, MilestoneStatus::Refunded);
-    assert_eq!(data.milestones.get(2).unwrap().status, MilestoneStatus::Refunded);
+    assert_eq!(
+        data.milestones.get(0).unwrap().status,
+        MilestoneStatus::Released
+    );
+    assert_eq!(
+        data.milestones.get(1).unwrap().status,
+        MilestoneStatus::Refunded
+    );
+    assert_eq!(
+        data.milestones.get(2).unwrap().status,
+        MilestoneStatus::Refunded
+    );
     assert_eq!(s.escrow.get_progress(&id), (1000, 0));
 }
 

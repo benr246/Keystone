@@ -2,7 +2,7 @@
 
 # 🗝️ Keystone — Milestone Escrow on Stellar Soroban
 
-[![CI/CD](https://github.com/OWNER/keystone/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/OWNER/keystone/actions/workflows/ci.yml)
+[![CI/CD](https://github.com/benr246/Keystone/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/benr246/Keystone/actions/workflows/ci.yml)
 [![Stellar Testnet](https://img.shields.io/badge/Stellar-Testnet-7B61FF?logo=stellar&logoColor=white)](https://stellar.org)
 [![Soroban](https://img.shields.io/badge/Soroban-SDK%20v25-orange?logo=rust&logoColor=white)](https://developers.stellar.org/docs/build/smart-contracts)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js)](https://nextjs.org)
@@ -12,8 +12,6 @@
 **Milestone-based escrow for client/freelancer payments on Stellar Testnet — funds locked in Soroban smart-contract custody and released one stone at a time, with verifiable on-chain inter-contract transfers.**
 
 </div>
-
-> ⚠️ After pushing to GitHub, replace `OWNER/keystone` in the CI badge above with the real repository path.
 
 Keystone is a milestone-based escrow dApp on Stellar testnet. A client locks the full budget of a project into a Soroban smart contract, split across 2–3 named milestones for a designated freelancer. As the client approves each milestone, the escrow contract executes a real inter-contract transfer (Escrow → Stellar Asset Contract) paying that milestone to the freelancer. If the client cancels, every still-locked milestone is refunded on-chain — already-released payments are untouched.
 
@@ -206,12 +204,15 @@ stellar contract invoke --id CA62…2SQO --source keystone-client --network test
 
 ## CI/CD Pipeline
 
-GitHub Actions (`.github/workflows/ci.yml`) runs two jobs on every push:
+GitHub Actions (`.github/workflows/ci.yml`) runs five jobs on every push and pull request, with per-ref concurrency cancellation:
 
-1. **contracts** — Rust stable + `wasm32v1-none` target, `cargo test`, release WASM build.
-2. **frontend** — Node 20, `npm ci`, `npm run lint`, `npm run build` (static export).
+1. **Contract Tests** — Rust stable, `cargo fmt --all -- --check`, `cargo test --workspace` (11 tests).
+2. **Contract WASM Build** — release build for the `wasm32v1-none` target.
+3. **Frontend Lint** — Node 20, `npm ci`, `next lint`.
+4. **Frontend Type Check** — `tsc --noEmit`.
+5. **Frontend Production Build** — static export build, then verifies `out/index.html` exists (the exact artifact Cloudflare serves).
 
-Badge and green-run screenshot: `PENDING — generate after deployment` (add after first push to GitHub).
+[![CI/CD](https://github.com/benr246/Keystone/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/benr246/Keystone/actions/workflows/ci.yml)
 
 ![CI run screenshot](PENDING — generate after deployment)
 

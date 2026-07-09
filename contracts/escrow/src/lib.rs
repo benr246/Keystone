@@ -1,5 +1,7 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, token, Address, Env, String, Vec};
+use soroban_sdk::{
+    contract, contractimpl, contracttype, symbol_short, token, Address, Env, String, Vec,
+};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -111,11 +113,7 @@ impl EscrowContract {
         }
 
         // Inter-contract call: move the full total into escrow custody.
-        token::Client::new(&env, &token).transfer(
-            &client,
-            &env.current_contract_address(),
-            &total,
-        );
+        token::Client::new(&env, &token).transfer(&client, &env.current_contract_address(), &total);
 
         let id = next_id(&env);
         let escrow = EscrowData {
