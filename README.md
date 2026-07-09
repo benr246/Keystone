@@ -378,8 +378,6 @@ keystone/
 
 ![cargo test output from CI](screenshots/cargo-test-output.png)
 
-Still to capture: wallet options modal (StellarWalletsKit picker) and the create-escrow form — `PENDING`.
-
 ## License
 
 MIT — see [LICENSE](LICENSE).
