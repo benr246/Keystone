@@ -159,6 +159,46 @@ impl EscrowContract {
         write_escrow(&env, id, &escrow);
     }
 
+    /// Client cancels the escrow: every still-Locked milestone is refunded
+    /// to the client and marked Refunded. Released milestones untouched.
+    pub fn cancel_escrow(env: Env, id: u64) {
+        let mut escrow = read_escrow(&env, id);
+        escrow.client.require_auth();
+
+        if escrow.cancelled {
+            panic!("escrow already cancelled");
+        }
+
+        let mut refunded_total: i128 = 0;
+        let mut updated: Vec<Milestone> = Vec::new(&env);
+        for m in escrow.milestones.iter() {
+            if m.status == MilestoneStatus::Locked {
+                refunded_total += m.amount;
+                updated.push_back(Milestone {
+                    title: m.title.clone(),
+                    amount: m.amount,
+                    status: MilestoneStatus::Refunded,
+                });
+            } else {
+                updated.push_back(m);
+            }
+        }
+        if refunded_total == 0 {
+            panic!("nothing to refund");
+        }
+
+        // Inter-contract call: refund locked funds to the client.
+        token::Client::new(&env, &escrow.token).transfer(
+            &env.current_contract_address(),
+            &escrow.client,
+            &refunded_total,
+        );
+
+        escrow.milestones = updated;
+        escrow.cancelled = true;
+        write_escrow(&env, id, &escrow);
+    }
+
     pub fn get_escrow(env: Env, id: u64) -> EscrowData {
         read_escrow(&env, id)
     }
