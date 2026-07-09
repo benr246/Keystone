@@ -1,5 +1,5 @@
 #![no_std]
-use soroban_sdk::{contract, contractimpl, contracttype, Address, Env, String, Vec};
+use soroban_sdk::{contract, contractimpl, contracttype, token, Address, Env, String, Vec};
 
 #[contracttype]
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -77,6 +77,59 @@ pub struct EscrowContract;
 
 #[contractimpl]
 impl EscrowContract {
+    /// Client creates an escrow: transfers the FULL sum of all milestone
+    /// amounts from client into this contract's custody (inter-contract
+    /// call: token.transfer(client, contract_address, total)).
+    pub fn create_escrow(
+        env: Env,
+        client: Address,
+        freelancer: Address,
+        token: Address,
+        milestones: Vec<(String, i128)>,
+    ) -> u64 {
+        client.require_auth();
+
+        if milestones.len() < 2 || milestones.len() > 3 {
+            panic!("must have 2 to 3 milestones");
+        }
+        if client == freelancer {
+            panic!("client and freelancer must differ");
+        }
+
+        let mut total: i128 = 0;
+        let mut stored: Vec<Milestone> = Vec::new(&env);
+        for (title, amount) in milestones.iter() {
+            if amount <= 0 {
+                panic!("milestone amount must be positive");
+            }
+            total += amount;
+            stored.push_back(Milestone {
+                title,
+                amount,
+                status: MilestoneStatus::Locked,
+            });
+        }
+
+        // Inter-contract call: move the full total into escrow custody.
+        token::Client::new(&env, &token).transfer(
+            &client,
+            &env.current_contract_address(),
+            &total,
+        );
+
+        let id = next_id(&env);
+        let escrow = EscrowData {
+            client,
+            freelancer,
+            token,
+            milestones: stored,
+            cancelled: false,
+            created_at: env.ledger().timestamp(),
+        };
+        write_escrow(&env, id, &escrow);
+        id
+    }
+
     pub fn get_escrow(env: Env, id: u64) -> EscrowData {
         read_escrow(&env, id)
     }
