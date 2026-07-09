@@ -29,6 +29,7 @@ Keystone is a milestone-based escrow dApp on Stellar testnet. A client locks the
 - [Transaction Hash for Contract Interaction](#transaction-hash-for-contract-interaction)
 - [Inter-Contract Communication](#inter-contract-communication)
 - [Event Streaming & Real-Time Updates](#event-streaming--real-time-updates)
+- [Wallet Connection](#wallet-connection)
 - [Escrow Mechanics](#escrow-mechanics)
 - [Smart Contract Deployment Workflow](#smart-contract-deployment-workflow)
 - [CI/CD Pipeline](#cicd-pipeline)
@@ -160,6 +161,10 @@ The frontend polls Soroban RPC every 5 seconds:
 - `get_progress` feeds the live hero — the keystone arch and the `X XLM released / Y XLM locked` numerals update without a reload.
 - RPC `getEvents` (cursor-paginated across the retention window) feeds the live activity feed ("Site log"), newest first, each row linking its real transaction hash to Stellar Expert.
 
+## Wallet Connection
+
+Multi-wallet support via **StellarWalletsKit** (`@creit.tech/stellar-wallets-kit` v2.5): the connect button opens the kit's auth modal listing Freighter, Albedo, xBull, Lobstr, Rabet, Hana, HOT and hardware wallets. Freighter is the primary tested wallet. On connect the header shows the truncated address and live XLM balance (polled from Horizon); disconnect clears the session. The kit is loaded lazily on the client so the static export prerenders cleanly.
+
 ## Escrow Mechanics
 
 - Amounts are stored in **stroops** (1 XLM = 10⁷ stroops) as `i128`.
@@ -210,21 +215,20 @@ stellar contract invoke --id CA62…2SQO --source keystone-client --network test
 
 ## CI/CD Pipeline
 
-GitHub Actions (`.github/workflows/ci.yml`) runs five jobs on every push and pull request, with per-ref concurrency cancellation:
+GitHub Actions (`.github/workflows/ci.yml`) runs six jobs on every push and pull request, with per-ref concurrency cancellation:
 
 1. **Contract Tests** — Rust stable, `cargo fmt --all -- --check`, `cargo test --workspace` (11 tests).
 2. **Contract WASM Build** — release build for the `wasm32v1-none` target.
 3. **Frontend Lint** — Node 20, `npm ci`, `next lint`.
-4. **Frontend Type Check** — `tsc --noEmit`.
-5. **Frontend Production Build** — static export build, then verifies `out/index.html` exists (the exact artifact Cloudflare serves).
+4. **Frontend Tests** — `vitest run` (14 unit tests).
+5. **Frontend Type Check** — `tsc --noEmit`.
+6. **Frontend Production Build** — static export build, then verifies `out/index.html` exists (the exact artifact Cloudflare serves).
 
 [![CI/CD](https://github.com/benr246/Keystone/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/benr246/Keystone/actions/workflows/ci.yml)
 
 All checks green on a real push (plus the Cloudflare Workers build):
 
 ![All 6 checks passing — 5 CI jobs + Cloudflare Workers build](screenshots/ci-all-checks-green.png)
-
-![CI run screenshot](PENDING — generate after deployment)
 
 ## Tests
 
@@ -247,7 +251,14 @@ test test::test_cancel_refunds_only_locked ... ok
 test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.14s
 ```
 
-Run them yourself: `cd contracts && cargo test`
+**Frontend:** 14 passing Vitest unit tests covering the stroop/XLM conversion math (including round-trips and the exact on-chain milestone amounts), address truncation, wallet-rejection detection, and the contract-panic → user-message mapping ([lib/config.test.ts](frontend/lib/config.test.ts), [lib/errors.test.ts](frontend/lib/errors.test.ts)).
+
+```
+ Test Files  2 passed (2)
+      Tests  14 passed (14)
+```
+
+Run them yourself: `cd contracts && cargo test` · `cd frontend && npm test`
 
 ![cargo test output — 11 passed, 0 failed (from the green CI run)](screenshots/cargo-test-output.png)
 
@@ -279,7 +290,7 @@ Verified at 375px (iPhone SE) and 768px: milestone rows stack, the hero arch sca
 ## Setup Instructions
 
 ```bash
-git clone <repo-url> && cd keystone
+git clone https://github.com/benr246/Keystone.git && cd Keystone
 
 # Contracts
 cd contracts
