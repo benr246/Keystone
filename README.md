@@ -11,6 +11,8 @@
 
 **Milestone-based escrow for client/freelancer payments on Stellar Testnet — funds locked in Soroban smart-contract custody and released one stone at a time, with verifiable on-chain inter-contract transfers.**
 
+### 🔗 [Live Demo → keystone.swore-fetch-sank.workers.dev](https://keystone.swore-fetch-sank.workers.dev/)
+
 </div>
 
 Keystone is a milestone-based escrow dApp on Stellar testnet. A client locks the full budget of a project into a Soroban smart contract, split across 2–3 named milestones for a designated freelancer. As the client approves each milestone, the escrow contract executes a real inter-contract transfer (Escrow → Stellar Asset Contract) paying that milestone to the freelancer. If the client cancels, every still-locked milestone is refunded on-chain — already-released payments are untouched.
