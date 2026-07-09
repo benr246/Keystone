@@ -81,9 +81,7 @@ Keystone is a milestone-based escrow dApp on Stellar testnet. A client locks the
 | CI/CD | GitHub Actions (contracts + frontend jobs) |
 | Network | Stellar Testnet, funded via Friendbot |
 
-## Live Demo
 
-`PENDING — generate after deployment`
 
 ## Demo Video (1–2 minutes)
 
