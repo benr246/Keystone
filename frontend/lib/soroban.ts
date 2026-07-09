@@ -198,36 +198,38 @@ export type EscrowEvent = {
   data: unknown[];
 };
 
-/** Poll contract events for the escrow contract within RPC retention. */
+/**
+ * Poll contract events within RPC retention. The RPC scans a bounded ledger
+ * range per request, so we page forward with the cursor until caught up.
+ */
 export async function getEscrowEvents(): Promise<EscrowEvent[]> {
   const server = getServer();
   const latest = await server.getLatestLedger();
-  let window = 100_000;
-  for (;;) {
-    try {
-      const res = await server.getEvents({
-        startLedger: Math.max(1, latest.sequence - window),
-        filters: [{ type: "contract", contractIds: [ESCROW_CONTRACT] }],
-        limit: 100,
+  const startLedger = Math.max(1, latest.sequence - 100_000);
+
+  const events: EscrowEvent[] = [];
+  let cursor: string | undefined;
+  for (let page = 0; page < 15; page++) {
+    const res = await server.getEvents({
+      ...(cursor ? { cursor } : { startLedger }),
+      filters: [{ type: "contract", contractIds: [ESCROW_CONTRACT] }],
+      limit: 100,
+    });
+    for (const ev of res.events) {
+      const topics = ev.topic.map((t) => scValToNative(t));
+      if (topics[0] !== "escrow") continue;
+      const kind = topics[1] as EscrowEvent["kind"];
+      const data = scValToNative(ev.value) as unknown[];
+      events.push({
+        kind,
+        escrowId: Number(Array.isArray(data) ? data[0] : data),
+        txHash: ev.txHash,
+        ledger: ev.ledger,
+        data: Array.isArray(data) ? data : [data],
       });
-      const events: EscrowEvent[] = [];
-      for (const ev of res.events) {
-        const topics = ev.topic.map((t) => scValToNative(t));
-        if (topics[0] !== "escrow") continue;
-        const kind = topics[1] as EscrowEvent["kind"];
-        const data = scValToNative(ev.value) as unknown[];
-        events.push({
-          kind,
-          escrowId: Number(Array.isArray(data) ? data[0] : data),
-          txHash: ev.txHash,
-          ledger: ev.ledger,
-          data: Array.isArray(data) ? data : [data],
-        });
-      }
-      return events.reverse(); // newest first
-    } catch (e) {
-      window = Math.floor(window / 4);
-      if (window < 1000) throw e;
     }
+    if (!res.cursor) break;
+    cursor = res.cursor;
   }
+  return events.reverse(); // newest first
 }
